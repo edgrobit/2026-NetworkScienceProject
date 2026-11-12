@@ -1,1 +1,6 @@
 network.csv/
+__pycache__/
+.ipynb_checkpoints/
+.venv/
+data/processed/*.pkl
+.DS_Store
