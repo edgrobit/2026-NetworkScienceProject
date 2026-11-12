@@ -9,14 +9,15 @@ def to_igraph(G):
     return g
 
 def loads(h, dc=None, demand=0.0):
-    """Load = betweenness; a datacenter adds demand x (paths ending at it)."""
+    """Load = betweenness; a datacenter adds `demand` units of flow toward it."""
     L = dict(zip(h.vs["name"], h.betweenness(weights="cost")))
-    if dc is not None and demand > 0 and dc in L:
+    if dc is not None and dc in L:
         d = h.vs.find(name=dc).index
         others = [v.index for v in h.vs if v.index != d]
         extra = h.betweenness(weights="cost", sources=others, targets=[d])
+        # plain betweenness above already counts 1 unit toward the datacenter
         for name, x in zip(h.vs["name"], extra):
-            L[name] += demand * x
+            L[name] += (demand - 1) * x
     return L
 
 def add_datacenter(g, bus, capacity=500):
