@@ -1,0 +1,6 @@
+run,n_communities,modularity
+main (res=1),35,0.9202
+resolution=0.5,25,0.9187
+resolution=1.0,35,0.9202
+resolution=2.0,50,0.9178
+stability (20 seeds),mean NMI = 0.9206,
