@@ -114,7 +114,7 @@ def build_graph(keep_giant=True, verbose=True):
             df = df[~is_true(df["under_construction"])]
         df = df[df["bus0"] != df["bus1"]].copy()            # no self-loops
         df["kind"] = kind
-        df["capacity"] = pd.to_numeric(df.get(cap_col), errors="coerce")
+        df[ "capacity"] = pd.to_numeric(df.get(cap_col), errors="coerce")
         log(f"  {fname:18s} {len(df):5d} edges")
         parts.append(df)
 
