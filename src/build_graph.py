@@ -149,8 +149,7 @@ def build_graph(keep_giant=True, verbose=True):
         merged.loc[no_cap, "capacity"] = merged.loc[no_cap, "kind"].map(med)
         merged["capacity"] = merged["capacity"].fillna(merged["capacity"].median())
 
-    merged["cost"] = 1.0 / merged["capacity"]  # for weighted shortest paths
-
+    merged["cost"] = (1_000_000 / merged["capacity"]).round().astype(int)  # integer costs: exact ties in shortest paths
     # ------------------------------------------------------------ graph
     G = nx.from_pandas_edgelist(merged, "u", "v", edge_attr=True)
     G.add_nodes_from(nodes.index)
