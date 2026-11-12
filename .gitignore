@@ -2,5 +2,5 @@ network.csv/
 __pycache__/
 .ipynb_checkpoints/
 .venv/
-data/processed/*.pkl
+data/processed/*
 .DS_Store
