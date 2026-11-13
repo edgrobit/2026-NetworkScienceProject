@@ -4,3 +4,5 @@ NMI vs. country,0.5714
 NMI vs. synchronous area,0.4486
 boundary nodes,307.0
 boundary share (%),17.4
+tie lines,168.0
+tie line share (%),7.5
