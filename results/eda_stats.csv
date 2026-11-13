@@ -1,0 +1,16 @@
+metric,value
+nodes,1763.0
+edges,2253.0
+density,0.0014505508938625537
+components,1.0
+avg_degree,2.5558706749858198
+avg_strength_MVA,5821.540150879184
+global_clustering,0.052620456466610316
+avg_clustering,0.04508953893525647
+avg_path_hops,24.652402165074367
+diameter_hops,64.0
+avg_path_km,1144.2722526502073
+diameter_km,3419.482430000001
+degree_assort,0.0058536698927433494
+voltage_assort,0.7608226372190013
+betweenness_centralization,0.30103862212532245
