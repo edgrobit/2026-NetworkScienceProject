@@ -37,6 +37,22 @@ nmi_sync    = nmi(sync_labels,    comm_labels)
 print(f"NMI vs. country:          {nmi_country:.4f}")
 print(f"NMI vs. synchronous area: {nmi_sync:.4f}")
 
+tie_lines = [(u, v) for u, v in G.edges() if label[u] != label[v]]
+n_tie = len(tie_lines)
+n_total = G.number_of_edges()
+print(f"\ntie lines between communities: {n_tie} / {n_total} "
+      f"({100 * n_tie / n_total:.1f}%)")
+
+tie_df = pd.DataFrame(
+    [{"u": u, "v": v,
+      "community_u": label[u], "community_v": label[v],
+      "country_u": G.nodes[u]["country"], "country_v": G.nodes[v]["country"],
+      "capacity": G[u][v].get("capacity")}
+     for u, v in tie_lines]
+)
+tie_df.to_csv(RESULTS / "tie_lines.csv", index=False)
+print("saved", RESULTS / "tie_lines.csv")
+
 boundary = {}
 for n in G.nodes():
     my = label[n]
@@ -92,6 +108,8 @@ summary = pd.DataFrame([
     {"metric": "NMI vs. synchronous area", "value": round(nmi_sync, 4)},
     {"metric": "boundary nodes", "value": n_boundary},
     {"metric": "boundary share (%)", "value": round(100 * n_boundary / len(nodes), 1)},
+    {"metric": "tie lines", "value": n_tie},
+    {"metric": "tie line share (%)", "value": round(100 * n_tie / n_total, 1)},
 ])
 summary.to_csv(RESULTS / "community_map_summary.csv", index=False)
 print("saved", RESULTS / "community_map_summary.csv")
