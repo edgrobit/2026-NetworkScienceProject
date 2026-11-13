@@ -77,6 +77,15 @@ plt.savefig(FIGURES / "community_map.png", dpi=150)
 plt.close()
 print("saved", FIGURES / "community_map.png")
 
+labels_df = pd.DataFrame(
+    [{"node": n, "community": label[n],
+      "country": G.nodes[n].get("country"),
+      "boundary": boundary[n]}
+     for n in G.nodes()]
+)
+labels_df.to_csv(RESULTS / "community_labels.csv", index=False)
+print("saved", RESULTS / "community_labels.csv")
+
 summary = pd.DataFrame([
     {"metric": "n_communities", "value": len(set(label.values()))},
     {"metric": "NMI vs. country", "value": round(nmi_country, 4)},
