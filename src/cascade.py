@@ -13,11 +13,17 @@ def loads(h, dc=None, demand=0.0):
     L = dict(zip(h.vs["name"], h.betweenness(weights="cost")))
     if dc is not None and dc in L:
         d = h.vs.find(name=dc).index
-        others = [v.index for v in h.vs if v.index != d]
-        extra = h.betweenness(weights="cost", sources=others, targets=[d])
-        # plain betweenness above already counts 1 unit toward the datacenter
-        for name, x in zip(h.vs["name"], extra):
-            L[name] += (demand - 1) * x
+        everyone = [v.index for v in h.vs if v.index != d]
+        # plain betweenness already counts 1 unit from every substation to the DC: remove it
+        base = h.betweenness(weights="cost", sources=everyone, targets=[d])
+        if sources is None:
+            extra = base
+        else:
+            alive = set(h.vs["name"])
+            src = [h.vs.find(name=s).index for s in sources if s in alive and s != dc]
+            extra = h.betweenness(weights="cost", sources=src, targets=[d])
+        for name, b, x in zip(h.vs["name"], base, extra):
+            L[name] += demand * x - b
     return L
 
 def add_datacenter(g, bus, capacity=500):
@@ -26,8 +32,10 @@ def add_datacenter(g, bus, capacity=500):
     h.add_edge("DC", bus, cost=round(1_000_000 / capacity))
     return h
 
-def cascade(g, alpha, h=None, triggers=(), dc=None, demand=0.0, L0=None):
-    """g sets the capacities (original grid); h is the grid to run on."""
+def cascade(g, alpha, h=None, triggers=(), dc=None, demand=0.0, L0=None, sources=None,
+            protected=()):
+    """g sets the capacities (original grid); h is the grid to run on.
+    protected: substations that cannot overload (e.g. a reinforced datacenter connection)."""
     if L0 is None:
         L0 = loads(g)
     cap = {n: (1 + alpha) * L0[n] for n in L0}
@@ -36,15 +44,35 @@ def cascade(g, alpha, h=None, triggers=(), dc=None, demand=0.0, L0=None):
     h.delete_vertices([t for t in triggers if t in names])
     failed = set(triggers)
     while True:
-        L = loads(h, dc, demand)
-        over = [n for n, l in L.items() if n != dc and l > cap[n] + 1e-9]
+        L = loads(h, dc, demand, sources)
+        over = [n for n, l in L.items()
+                if n != dc and n not in protected and l > cap[n] + 1e-9]
         if not over:
             break
         h.delete_vertices(over)
         failed.update(over)
-
+    if dc is not None and dc in set(h.vs["name"]):
+        h.delete_vertices([dc])
+    lcc = max(h.connected_components().sizes(), default=0) if h.vcount() else 0
+    return failed, lcc / g.vcount()
     # measure the grid without the datacenter node itself
     if dc is not None and dc in set(h.vs["name"]):
         h.delete_vertices([dc])
     lcc = max(h.connected_components().sizes(), default=0) if h.vcount() else 0
     return failed, lcc / g.vcount()
+
+    def demand_threshold(g, bus, alpha, L0, sources=None, reinforced=False):
+        """Smallest datacenter demand at `bus` that overloads a substation.
+        reinforced=True: the connection substation itself cannot fail.
+        Returns (threshold, first substation to fail)."""
+    h = add_datacenter(g, bus)
+    d = h.vs.find(name="DC").index
+    if sources is None:
+        src = [v.index for v in h.vs if v.index != d]
+    else:
+        src = [h.vs.find(name=s).index for s in sources if s != "DC"]
+    extra = dict(zip(h.vs["name"], h.betweenness(weights="cost", sources=src, targets=[d])))
+    th = {n: alpha * L0[n] / extra[n] for n in L0
+          if extra.get(n, 0) > 0 and not (reinforced and n == bus)}
+    first = min(th, key=th.get)
+    return th[first], first
