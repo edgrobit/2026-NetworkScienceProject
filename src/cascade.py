@@ -35,12 +35,14 @@ def add_datacenter(g, bus, capacity=500):
     return h
 
 def cascade(g, alpha, h=None, triggers=(), dc=None, demand=0.0, L0=None, sources=None,
-            protected=()):
+            protected=(), floor=0.0):
     """g sets the capacities (original grid); h is the grid to run on.
-    protected: substations that cannot overload (e.g. a reinforced datacenter connection)."""
+    protected: substations that cannot overload (e.g. a reinforced datacenter connection).
+    floor: minimum load used for capacities, so low-load substations still get spare capacity:
+           capacity = (1 + alpha) * max(normal load, floor). Default 0 = original model."""
     if L0 is None:
         L0 = loads(g)
-    cap = {n: (1 + alpha) * L0[n] for n in L0}
+    cap = {n: (1 + alpha) * max(L0[n], floor) for n in L0}
     h = (g if h is None else h).copy()
     names = set(h.vs["name"])
     h.delete_vertices([t for t in triggers if t in names])
@@ -58,18 +60,19 @@ def cascade(g, alpha, h=None, triggers=(), dc=None, demand=0.0, L0=None, sources
     lcc = max(h.connected_components().sizes(), default=0) if h.vcount() else 0
     return failed, lcc / g.vcount()
 
-def demand_threshold(g, bus, alpha, L0, sources=None, reinforced=False):
+def demand_threshold(g, bus, alpha, L0, sources=None, reinforced=False, floor=0.0):
     """Smallest datacenter demand at `bus` that overloads a substation.
     reinforced=True: the connection substation itself cannot fail.
+    floor: minimum load used for capacities (same as in cascade).
     Returns (threshold, first substation to fail)."""
     h = add_datacenter(g, bus)
-    d = h.vs.find(name="DC").index
+    d = h.vs.find(name="DC").index 
     if sources is None:
         src = [v.index for v in h.vs if v.index != d]
     else:
         src = [h.vs.find(name=s).index for s in sources if s != "DC"]
     extra = dict(zip(h.vs["name"], h.betweenness(weights="cost", sources=src, targets=[d])))
-    th = {n: alpha * L0[n] / extra[n] for n in L0
+    th = {n: ((1 + alpha) * max(L0[n], floor) - L0[n]) / extra[n] for n in L0
           if extra.get(n, 0) > 0 and not (reinforced and n == bus)}
     first = min(th, key=th.get)
     return th[first], first
