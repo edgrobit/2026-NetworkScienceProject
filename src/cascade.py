@@ -8,8 +8,10 @@ def to_igraph(G):
     g.es["cost"] = [d["cost"] for _, _, d in G.edges(data=True)]
     return g
 
-def loads(h, dc=None, demand=0.0):
-    """Load = betweenness; a datacenter adds `demand` units of flow toward it."""
+def loads(h, dc=None, demand=0.0, sources=None):
+    """Load = betweenness; a datacenter adds `demand` units of flow toward it.
+    sources=None: every substation sends flow to the datacenter (uniform).
+    sources=[names]: only these substations send flow (e.g. power plants)."""
     L = dict(zip(h.vs["name"], h.betweenness(weights="cost")))
     if dc is not None and dc in L:
         d = h.vs.find(name=dc).index
@@ -55,16 +57,11 @@ def cascade(g, alpha, h=None, triggers=(), dc=None, demand=0.0, L0=None, sources
         h.delete_vertices([dc])
     lcc = max(h.connected_components().sizes(), default=0) if h.vcount() else 0
     return failed, lcc / g.vcount()
-    # measure the grid without the datacenter node itself
-    if dc is not None and dc in set(h.vs["name"]):
-        h.delete_vertices([dc])
-    lcc = max(h.connected_components().sizes(), default=0) if h.vcount() else 0
-    return failed, lcc / g.vcount()
 
-    def demand_threshold(g, bus, alpha, L0, sources=None, reinforced=False):
-        """Smallest datacenter demand at `bus` that overloads a substation.
-        reinforced=True: the connection substation itself cannot fail.
-        Returns (threshold, first substation to fail)."""
+def demand_threshold(g, bus, alpha, L0, sources=None, reinforced=False):
+    """Smallest datacenter demand at `bus` that overloads a substation.
+    reinforced=True: the connection substation itself cannot fail.
+    Returns (threshold, first substation to fail)."""
     h = add_datacenter(g, bus)
     d = h.vs.find(name="DC").index
     if sources is None:
